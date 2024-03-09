@@ -12,10 +12,10 @@ import (
 )
 
 type Webcam struct {
-	mediaStream mediadevices.MediaStream
-	rgba        *image.RGBA
-	width       int
-	height      int
+	codecSelector *mediadevices.CodecSelector
+	rgba          *image.RGBA
+	width         int
+	height        int
 }
 
 type Picture struct {
@@ -25,7 +25,7 @@ type Picture struct {
 	Stride int
 }
 
-func NewWebcam(deviceID string, width, height int) (*Webcam, error) {
+func NewWebcam(width, height int) (*Webcam, error) {
 	x264Params, _ := x264.NewParams()
 	x264Params.Preset = x264.PresetMedium
 	x264Params.BitRate = 1_000_000 // 1mbps
@@ -34,27 +34,27 @@ func NewWebcam(deviceID string, width, height int) (*Webcam, error) {
 		mediadevices.WithVideoEncoders(&x264Params),
 	)
 
-	mediaStream, err := mediadevices.GetUserMedia(mediadevices.MediaStreamConstraints{
-		Video: func(c *mediadevices.MediaTrackConstraints) {
-			c.Width = prop.Int(width)
-			c.Height = prop.Int(height)
-			c.DeviceID = prop.String(deviceID)
-		},
-		Codec: codecSelector,
-	})
-	if err != nil {
-		return nil, err
-	}
 	return &Webcam{
-		mediaStream: mediaStream,
-		rgba:        image.NewRGBA(image.Rect(0, 0, width, height)),
-		width:       width,
-		height:      height,
+		codecSelector: codecSelector,
+		rgba:          image.NewRGBA(image.Rect(0, 0, width, height)),
+		width:         width,
+		height:        height,
 	}, nil
 }
 
-func (wc *Webcam) Read(ctx context.Context, picChan chan Picture) error {
-	videoTrack := wc.mediaStream.GetVideoTracks()[0].(*mediadevices.VideoTrack)
+func (wc *Webcam) Read(ctx context.Context, deviceID string, picChan chan Picture) error {
+	mediaStream, err := mediadevices.GetUserMedia(mediadevices.MediaStreamConstraints{
+		Video: func(c *mediadevices.MediaTrackConstraints) {
+			c.Width = prop.Int(wc.width)
+			c.Height = prop.Int(wc.height)
+			c.DeviceID = prop.String(deviceID)
+		},
+		Codec: wc.codecSelector,
+	})
+	if err != nil {
+		return err
+	}
+	videoTrack := mediaStream.GetVideoTracks()[0].(*mediadevices.VideoTrack)
 	videoReader := videoTrack.NewReader(false)
 
 	for {

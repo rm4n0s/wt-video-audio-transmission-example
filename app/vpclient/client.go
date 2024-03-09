@@ -1,4 +1,4 @@
-package client
+package vpclient
 
 import (
 	"context"
@@ -9,18 +9,18 @@ import (
 	"github.com/quic-go/webtransport-go"
 )
 
-type Client struct {
+type VoipClient struct {
 	d         webtransport.Dialer
 	connected bool
 	session   *webtransport.Session
 }
 
-func NewClient() *Client {
-	return &Client{}
+func NewVoipClient() *VoipClient {
+	return &VoipClient{}
 }
 
-func (c *Client) Connect(ctx context.Context, link string) error {
-	rsp, session, err := c.d.Dial(ctx, link, nil)
+func (c *VoipClient) Connect(ctx context.Context, url string) error {
+	rsp, session, err := c.d.Dial(ctx, url, nil)
 	if err != nil {
 		return err
 	}
@@ -34,6 +34,6 @@ func (c *Client) Connect(ctx context.Context, link string) error {
 	return nil
 }
 
-func (c *Client) Connected() bool {
+func (c *VoipClient) Connected() bool {
 	return c.connected
 }

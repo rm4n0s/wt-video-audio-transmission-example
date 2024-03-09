@@ -5,6 +5,7 @@ go 1.22.1
 require (
 	github.com/google/uuid v1.6.0
 	github.com/quic-go/quic-go v0.41.0
+	github.com/rm4n0s/go-observer v0.0.0-20240308232834-57ef04487a40
 )
 
 require (
