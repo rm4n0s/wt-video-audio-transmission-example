@@ -1,5 +1,10 @@
 # wt-video-audio-transmission-example
 
+# Installation for compilation
+```bash
+sudo dnf install libadwaita-devel gobject-introspection-devel gtk4-devel x264-devel v4l-utils
+```
+
 
 # First initialization
 
