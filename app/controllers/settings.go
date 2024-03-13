@@ -1,7 +1,10 @@
-package containers
+package controllers
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"net/url"
 
 	"image/color"
 
@@ -19,23 +22,23 @@ type Settings struct {
 	Username string
 }
 
-type SettingsContainer struct {
+type SettingsController struct {
 	Submittion observer.Property[Settings]
 	Error      observer.Property[string]
 }
 
-func NewSettingsContainer() *SettingsContainer {
-	return &SettingsContainer{
+func NewSettingsController() *SettingsController {
+	return &SettingsController{
 		Submittion: observer.NewProperty(Settings{}),
 		Error:      observer.NewProperty(""),
 	}
 }
 
-func (sc *SettingsContainer) Container(ctx context.Context) fyne.CanvasObject {
+func (sc *SettingsController) Container(ctx context.Context) fyne.CanvasObject {
 	hostEntry := widget.NewEntry()
 	hostEntry.Text = "https://localhost:4433"
 	usernameEntry := widget.NewEntry()
-	submitBtn := widget.NewButton("Submit", func() {
+	submitBtn := widget.NewButton("Connect", func() {
 		sc.Submittion.Update(Settings{
 			Host:     hostEntry.Text,
 			Username: usernameEntry.Text,
@@ -53,4 +56,15 @@ func (sc *SettingsContainer) Container(ctx context.Context) fyne.CanvasObject {
 		layout.NewSpacer(), errLabel,
 	)
 	return formBox
+}
+
+func (sc *SettingsController) ValidateSettings(sets Settings) error {
+	if sets.Username == "" {
+		return errors.New("username is empty")
+	}
+	_, err := url.ParseRequestURI(sets.Host)
+	if err != nil {
+		return fmt.Errorf("failed to parse host: %w", err)
+	}
+	return nil
 }

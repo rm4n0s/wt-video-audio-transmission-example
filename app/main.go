@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
+	"log"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"github.com/rm4n0s/go-observer"
-	"github.com/rm4n0s/wt-video-audio-transmission-example/app/containers"
+	"github.com/rm4n0s/wt-video-audio-transmission-example/app/controllers"
 )
 
 type Page string
@@ -23,16 +24,35 @@ type Route struct {
 }
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	ctx := context.Background()
 	router := observer.NewProperty(Route{Page: PageNone})
 	a := app.New()
+
 	w := a.NewWindow("wt-example")
 	w.Resize(fyne.NewSize(640, 480))
-	settingsCtn := containers.NewSettingsContainer()
-	settingsCtn.Submittion.Observe().OnChange(ctx, func(value containers.Settings) {
-		err := validateSettings(value)
+	settingsCtrl := controllers.NewSettingsController()
+	roomCtrl := controllers.NewRoomController()
+	router.Observe().OnChange(ctx, func(value Route) {
+		switch value.Page {
+		case PageSettingsCtn:
+			w.SetContent(settingsCtrl.Container(ctx))
+
+		case PageRoomCtn:
+			w.SetContent(roomCtrl.Container(value.Params))
+
+		}
+	})
+	settingsCtrl.Submittion.Observe().OnChange(ctx, func(value controllers.Settings) {
+		err := settingsCtrl.ValidateSettings(value)
 		if err != nil {
-			settingsCtn.Error.Update(err.Error())
+			settingsCtrl.Error.Update(err.Error())
+			return
+		}
+		err = roomCtrl.InitConns(value.Host, value.Username)
+		if err != nil {
+			settingsCtrl.Error.Update(err.Error())
 			return
 		}
 		router.Update(Route{Page: PageRoomCtn, Params: map[string]string{
@@ -40,17 +60,9 @@ func main() {
 			"username": value.Username,
 		}})
 	})
-	roomCtn := containers.NewRoomContainer()
 
-	router.Observe().OnChange(ctx, func(value Route) {
-		switch value.Page {
-		case PageSettingsCtn:
-			w.SetContent(settingsCtn.Container(ctx))
-
-		case PageRoomCtn:
-			w.SetContent(roomCtn.Container(value.Params))
-
-		}
+	roomCtrl.Closed.Observe().OnChange(ctx, func(value bool) {
+		router.Update(Route{Page: PageSettingsCtn})
 	})
 
 	router.Update(Route{Page: PageSettingsCtn})
